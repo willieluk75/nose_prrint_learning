@@ -9,16 +9,25 @@ from api.config import settings
 
 router = APIRouter(prefix="/pets", tags=["pets"])
 
+_supabase = None
+_embedder = None
+
 
 def get_supabase() -> SupabaseService:
-    return SupabaseService(url=settings.SUPABASE_URL, key=settings.SUPABASE_KEY)
+    global _supabase
+    if _supabase is None:
+        _supabase = SupabaseService(url=settings.SUPABASE_URL, key=settings.SUPABASE_KEY)
+    return _supabase
 
 
 def get_embedder() -> EmbeddingService:
-    return EmbeddingService(
-        weights_path=settings.MODEL_WEIGHTS_PATH or None,
-        embedding_dim=settings.EMBEDDING_DIM,
-    )
+    global _embedder
+    if _embedder is None:
+        _embedder = EmbeddingService(
+            weights_path=settings.MODEL_WEIGHTS_PATH or None,
+            embedding_dim=settings.EMBEDDING_DIM,
+        )
+    return _embedder
 
 
 @router.post("/register", response_model=PetRegisterResponse)
@@ -32,7 +41,11 @@ async def register_pet(
     """Register a new pet and store the first nose print embedding."""
     image_bytes = await image.read()
 
-    embedding = get_embedder().image_bytes_to_embedding(image_bytes)
+    try:
+        embedding = get_embedder().image_bytes_to_embedding(image_bytes)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"Invalid image: {e}")
+
     supabase = get_supabase()
     pet_id = supabase.register_pet(name=name, species=species, owner_id=owner_id, breed=breed)
 
@@ -54,7 +67,11 @@ async def register_pet(
 async def verify_pet(image: UploadFile = File(...)):
     """Upload a nose print image and determine if it matches a registered pet."""
     image_bytes = await image.read()
-    embedding = get_embedder().image_bytes_to_embedding(image_bytes)
+
+    try:
+        embedding = get_embedder().image_bytes_to_embedding(image_bytes)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"Invalid image: {e}")
 
     supabase = get_supabase()
     match = supabase.find_matching_pet(embedding, threshold=settings.SIMILARITY_THRESHOLD)
@@ -76,7 +93,11 @@ async def verify_pet(image: UploadFile = File(...)):
 async def add_embedding(pet_id: str, image: UploadFile = File(...)):
     """Add a new nose print sample to an existing pet (improves recognition accuracy)."""
     image_bytes = await image.read()
-    embedding = get_embedder().image_bytes_to_embedding(image_bytes)
+
+    try:
+        embedding = get_embedder().image_bytes_to_embedding(image_bytes)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"Invalid image: {e}")
 
     supabase = get_supabase()
     image_path = f"raw/{pet_id}/{uuid.uuid4()}.jpg"
@@ -98,5 +119,8 @@ async def get_pet(pet_id: str):
 @router.delete("/{pet_id}")
 async def delete_pet(pet_id: str):
     """Delete a pet and all associated embeddings."""
+    pet = get_supabase().get_pet(pet_id)
+    if pet is None:
+        raise HTTPException(status_code=404, detail="Pet not found")
     get_supabase().delete_pet(pet_id)
     return {"deleted": True, "pet_id": pet_id}

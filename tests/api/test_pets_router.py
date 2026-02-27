@@ -5,6 +5,16 @@ from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 
 
+@pytest.fixture(autouse=True)
+def reset_router_globals():
+    import api.routers.pets as pets_module
+    pets_module._supabase = None
+    pets_module._embedder = None
+    yield
+    pets_module._supabase = None
+    pets_module._embedder = None
+
+
 @pytest.fixture
 def client():
     with patch("api.routers.pets.SupabaseService") as mock_sb, \
