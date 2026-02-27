@@ -1,20 +1,5 @@
 from fastapi import FastAPI
-from pydantic_settings import BaseSettings
-from typing import Optional
-
-
-class Settings(BaseSettings):
-    SUPABASE_URL: str = ""
-    SUPABASE_KEY: str = ""
-    SUPABASE_SERVICE_KEY: str = ""
-    MODEL_WEIGHTS_PATH: str = ""
-    EMBEDDING_DIM: int = 256
-    SIMILARITY_THRESHOLD: float = 0.85
-
-    model_config = {"env_file": ".env", "extra": "ignore"}
-
-
-settings = Settings()
+from api.config import settings  # noqa: F401 – re-exported for backwards compat
 
 app = FastAPI(
     title="寵物鼻紋辨認 API",
@@ -26,3 +11,7 @@ app = FastAPI(
 @app.get("/health")
 def health_check():
     return {"status": "ok", "version": "1.0.0"}
+
+
+from api.routers import pets  # noqa: E402
+app.include_router(pets.router, prefix="/api/v1")
