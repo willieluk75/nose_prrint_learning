@@ -2,6 +2,11 @@
 import cv2
 import numpy as np
 from pathlib import Path
+from PIL import Image
+from pillow_heif import register_heif_opener
+
+# Register HEIF opener at module level
+register_heif_opener()
 
 TARGET_SIZE = (224, 224)
 
@@ -31,6 +36,17 @@ def load_and_preprocess(image_path: str) -> np.ndarray:
     if not path.exists():
         raise FileNotFoundError(f"Image not found: {image_path}")
 
+    # Step 1: Try PIL first (supports HEIC/HEIF)
+    try:
+        img_pil = Image.open(str(path))
+        # Convert to RGB NumPy array
+        img_rgb = np.array(img_pil.convert('RGB'))
+        return preprocess_image(img_rgb)
+    except Exception:
+        # PIL failed, fall through to OpenCV
+        pass
+
+    # Step 2: OpenCV fallback for JPEG/PNG
     img = cv2.imread(str(path))
     if img is None:
         raise ValueError(f"Cannot read image: {image_path}")
