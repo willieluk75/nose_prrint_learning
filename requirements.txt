@@ -4,6 +4,7 @@ opencv-python
 scikit-learn
 matplotlib
 pillow
+pillow-heif>=0.16.0
 fastapi
 uvicorn
 python-multipart

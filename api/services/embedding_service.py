@@ -1,7 +1,13 @@
 import numpy as np
 import cv2
+import io
+from PIL import Image
+from pillow_heif import register_heif_opener
 from src.data.preprocessor import preprocess_image
 from src.inference.embedder import Embedder
+
+# Register HEIF opener (call once at module level)
+register_heif_opener()
 
 
 class EmbeddingService:
@@ -22,6 +28,19 @@ class EmbeddingService:
         Returns:
             shape (256,), L2 normalized float32
         """
+        # Step 1: Try PIL to detect and convert HEIC/HEIF
+        try:
+            img_pil = Image.open(io.BytesIO(image_bytes))
+            if img_pil.format == 'HEIF':
+                # Convert HEIF to JPEG bytes for OpenCV compatibility
+                jpeg_bytes = io.BytesIO()
+                img_pil.save(jpeg_bytes, format='JPEG', quality=95)
+                image_bytes = jpeg_bytes.getvalue()
+        except Exception:
+            # If PIL fails, fall through to OpenCV (might be non-HEIF)
+            pass
+
+        # Step 2: OpenCV decode
         nparr = np.frombuffer(image_bytes, np.uint8)
         img_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if img_bgr is None:
