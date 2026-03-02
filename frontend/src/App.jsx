@@ -34,10 +34,6 @@ function App() {
   }, [editingPhoto, photos]);
 
   const handlePhotoClick = (photo) => {
-    if (photo.isHeic) {
-      toast.warning('HEIC 照片請先轉換格式');
-      return;
-    }
     setEditingPhoto(photo);
   };
 
