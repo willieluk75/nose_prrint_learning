@@ -173,7 +173,7 @@ export function PhotoUploader({ onPhotosSelect, maxPhotos = 10 }) {
                 src={photo.previewUrl}
                 alt={`Photo ${photo.id}`}
                 className="w-full aspect-square object-cover rounded-xl shadow-md"
-              />
+              ></img>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
