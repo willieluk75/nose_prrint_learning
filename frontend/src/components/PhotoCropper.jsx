@@ -1,112 +1,68 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
+import { toast } from 'react-toastify';
 import 'react-image-crop/dist/ReactCrop.css';
 
-/**
- * Convert crop to canvas and export as blob
- */
-function getCroppedImg(image, crop, fileName) {
+async function cropToBlob(image, crop) {
   const canvas = document.createElement('canvas');
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
-
-  canvas.width = crop.width * scaleX;
-  canvas.height = crop.height * scaleY;
-
+  canvas.width = Math.round(crop.width * scaleX);
+  canvas.height = Math.round(crop.height * scaleY);
   const ctx = canvas.getContext('2d');
   ctx.drawImage(
     image,
-    crop.x * scaleX,
-    crop.y * scaleY,
-    crop.width * scaleX,
-    crop.height * scaleY
+    crop.x * scaleX, crop.y * scaleY,
+    crop.width * scaleX, crop.height * scaleY,
+    0, 0, canvas.width, canvas.height
   );
-
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          console.error('Canvas is empty');
-          return;
-        }
-        blob.name = `${fileName.replace(/\.[^/.]+$/, '')}_cropped.jpg`;
-        resolve(blob);
-      },
+      (blob) => (blob ? resolve(blob) : reject(new Error('Canvas empty'))),
       'image/jpeg',
       0.95
     );
   });
 }
 
-/**
- * PhotoCropper - Crop pet nose print photos with fixed aspect ratio
- * Supports croppedBlob from PhotoUploader for HEIC-converted images
- */
 export function PhotoCropper({ photo, onCropComplete, onCancel }) {
-  const [crop, setCrop] = useState(null);
-  const [completedCrop, setCompletedCrop] = useState(null);
+  const [crop, setCrop] = useState();
+  const [completedCrop, setCompletedCrop] = useState();
   const [isProcessing, setIsProcessing] = useState(false);
   const imgRef = useRef(null);
 
-  const initialImageSrc = photo.previewUrl
-    || (photo.imageBlob ? URL.createObjectURL(photo.imageBlob) : URL.createObjectURL(photo.file));
-
-  const onImageLoad = (e) => {
+  const onImageLoad = useCallback((e) => {
     const { width, height } = e.currentTarget;
-
-    // Initial crop: centered square, max 800px
-    const initialCrop = centerCrop(
-      makeAspectCrop(
-        {
-          unit: '%',
-          width: Math.min(80, (width / width) * 100),
-        },
-        1, // aspect ratio 1:1 (square)
-        width,
-        height
-      )
+    setCrop(
+      centerCrop(makeAspectCrop({ unit: '%', width: 80 }, 1, width, height), width, height)
     );
+  }, []);
 
-    setCrop(initialCrop);
-  };
-
-  const handleCrop = async () => {
-    if (!imgRef.current || !completedCrop) {
-      return;
-    }
-
+  const handleConfirm = async () => {
+    if (!imgRef.current || !completedCrop?.width) return;
     setIsProcessing(true);
-
     try {
-      const croppedBlob = await getCroppedImg(
-        imgRef.current,
-        completedCrop,
-        photo.file.name
-      );
-
-      onCropComplete(
-        new File([croppedBlob], `${photo.file.name.replace(/\.[^/.]+$/, '')}_cropped.jpg`, {
-          type: 'image/jpeg',
-        }),
-        croppedBlob
-      );
-    } catch (error) {
-      console.error('Error cropping image:', error);
-      alert('裁切圖片時發生錯誤，請重試');
+      const blob = await cropToBlob(imgRef.current, completedCrop);
+      const baseName = (photo.file?.name || 'photo.jpg').replace(/\.[^.]+$/, '');
+      const croppedFile = new File([blob], `${baseName}_cropped.jpg`, { type: 'image/jpeg' });
+      onCropComplete(croppedFile, blob);
+    } catch (err) {
+      console.error(err);
+      toast.error('裁切失敗，請重試');
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between shrink-0">
-        <h2 className="text-lg font-bold text-gray-900">裁切鼻紋區域</h2>
+      <div className="bg-white h-14 px-4 flex items-center justify-between shrink-0 border-b">
+        <h2 className="text-base font-bold text-gray-900">裁切照片</h2>
         <button
           onClick={onCancel}
           disabled={isProcessing}
-          className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50 transition-colors"
+          className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -114,55 +70,54 @@ export function PhotoCropper({ photo, onCropComplete, onCancel }) {
         </button>
       </div>
 
-      {/* Image area — fills all available space */}
-      <div className="flex-1 overflow-hidden flex items-center justify-center bg-gray-900 min-h-0">
-        {initialImageSrc && (
-          <ReactCrop
-            crop={crop}
-            onChange={(c) => setCrop(c)}
-            onComplete={(c) => setCompletedCrop(c)}
-            aspect={1}
-            minWidth={100}
-            minHeight={100}
-            keepSelection
-          >
-            <img
-              ref={imgRef}
-              alt="Crop preview"
-              src={initialImageSrc}
-              onLoad={onImageLoad}
-              style={{ maxWidth: '100vw', maxHeight: 'calc(100vh - 120px)', objectFit: 'contain' }}
-            />
-          </ReactCrop>
-        )}
+      {/* Crop area */}
+      <div className="flex-1 flex items-center justify-center overflow-hidden min-h-0 bg-black">
+        <ReactCrop
+          crop={crop}
+          onChange={setCrop}
+          onComplete={setCompletedCrop}
+          aspect={1}
+          minWidth={80}
+          keepSelection
+        >
+          <img
+            ref={imgRef}
+            src={photo.previewUrl}
+            alt="crop"
+            onLoad={onImageLoad}
+            style={{
+              maxWidth: '100vw',
+              maxHeight: 'calc(100dvh - 116px)',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
+        </ReactCrop>
       </div>
 
-      {/* Bottom bar */}
-      <div className="bg-white border-t px-4 py-3 flex items-center gap-3 shrink-0">
-        <p className="text-xs text-gray-500 flex-1">拖拽裁切框選取鼻紋區域（正方形）</p>
+      {/* Footer */}
+      <div className="bg-white h-[52px] px-4 flex items-center justify-end gap-3 shrink-0 border-t">
         <button
           onClick={onCancel}
           disabled={isProcessing}
-          className="py-2 px-4 border border-gray-300 text-gray-700 rounded-xl
-            hover:bg-gray-50 disabled:opacity-50 font-medium transition-colors"
+          className="py-2 px-5 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
         >
           取消
         </button>
         <button
-          onClick={handleCrop}
-          disabled={isProcessing || !completedCrop}
-          className="py-2 px-5 bg-primary text-white rounded-xl
-            hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed
-            font-medium transition-colors flex items-center gap-2"
+          onClick={handleConfirm}
+          disabled={isProcessing || !completedCrop?.width}
+          className="py-2 px-5 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {isProcessing ? (
             <>
               <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
               處理中...
             </>
-          ) : '確認裁切'}
+          ) : '確定'}
         </button>
       </div>
     </div>

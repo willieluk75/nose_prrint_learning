@@ -109,7 +109,7 @@ function App() {
         <div className="bg-white rounded-3xl shadow-xl p-6 space-y-6">
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">1. 上傳照片</h2>
-            <PhotoUploader onPhotosSelect={handlePhotosSelect} onPhotoClick={handlePhotoClick} />
+            <PhotoUploader photos={photos} onPhotosChange={handlePhotosSelect} onPhotoClick={handlePhotoClick} />
             {photoActions}
           </section>
           {currentPhoto && (
