@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { PhotoUploader } from './components/PhotoUploader';
 import { PhotoCropper } from './components/PhotoCropper';
 import { PetForm } from './components/PetForm';
@@ -13,17 +13,7 @@ function App() {
   const [currentPhoto, setCurrentPhoto] = useState(null);
   const [petData, setPetData] = useState({});
   const [showProgress, setShowProgress] = useState(false);
-  const [appVersion, setAppVersion] = useState('1.0.0');
-
   const { uploads, uploadPets, clearUploads } = useUpload();
-
-  // Read version from public/version.json
-  useEffect(() => {
-    fetch('/version.json')
-      .then((res) => res.json())
-      .then((data) => setAppVersion(data.version))
-      .catch(() => console.error('Failed to load version'));
-  }, []);
 
   const handlePhotosSelect = useCallback((selectedPhotos) => {
     setPhotos(selectedPhotos);
@@ -114,7 +104,7 @@ function App() {
             寵物鼻紋收集
           </h1>
           <p className="text-gray-600">上傳寵物照片，收集鼻紋用於身份辨識</p>
-          <p className="text-sm text-gray-400 mt-1">v{appVersion}</p>
+          <p className="text-sm text-gray-400 mt-1">v{__APP_VERSION__}</p>
         </div>
         <div className="bg-white rounded-3xl shadow-xl p-6 space-y-6">
           <section>
@@ -139,7 +129,7 @@ function App() {
           )}
         </div>
         <footer className="text-center mt-8 text-sm text-gray-500">
-          <p>寵物鼻紋辨識系統 v{appVersion}</p>
+          <p>寵物鼻紋辨識系統 v{__APP_VERSION__}</p>
         </footer>
       </div>
       {editingPhoto && <PhotoCropper photo={editingPhoto} onCropComplete={handleCropComplete} onCancel={() => setEditingPhoto(null)} />}
