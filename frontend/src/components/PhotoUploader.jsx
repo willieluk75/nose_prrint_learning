@@ -6,7 +6,7 @@ import heic2any from 'heic2any';
  * PhotoUploader - Multiple photo selection with thumbnail preview
  * Supports HEIC, JPEG, PNG formats with automatic HEIC conversion
  */
-export function PhotoUploader({ onPhotosSelect, maxPhotos = 10 }) {
+export function PhotoUploader({ onPhotosSelect, onPhotoClick, maxPhotos = 10 }) {
   const [photos, setPhotos] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
@@ -168,11 +168,11 @@ export function PhotoUploader({ onPhotosSelect, maxPhotos = 10 }) {
       {photos.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           {photos.map((photo) => (
-            <div key={photo.id} className="relative group">
+            <div key={photo.id} className="relative group cursor-pointer" onClick={() => onPhotoClick?.(photo)}>
               <img
                 src={photo.previewUrl}
                 alt={`Photo ${photo.id}`}
-                className="w-full aspect-square object-cover rounded-xl shadow-md"
+                className="w-full aspect-square object-cover rounded-xl shadow-md group-hover:ring-2 group-hover:ring-primary transition-all"
               ></img>
               <button
                 onClick={(e) => {

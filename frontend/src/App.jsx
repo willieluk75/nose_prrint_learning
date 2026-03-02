@@ -119,37 +119,9 @@ function App() {
         <div className="bg-white rounded-3xl shadow-xl p-6 space-y-6">
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">1. 上傳照片</h2>
-            <PhotoUploader onPhotosSelect={handlePhotosSelect} />
+            <PhotoUploader onPhotosSelect={handlePhotosSelect} onPhotoClick={handlePhotoClick} />
             {photoActions}
           </section>
-          {photos.length > 0 && (
-            <section>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">已選擇的照片</h2>
-              <div className="grid grid-cols-3 gap-3">
-                {photos.map((photo) => (
-                  <div key={photo.id} onClick={() => handlePhotoClick(photo)} className="relative group cursor-pointer">
-                    {photo.previewUrl ? (
-                      <img src={photo.previewUrl} alt={`Photo ${photo.id}`} className="w-full aspect-square object-cover rounded-xl shadow-md group-hover:ring-2 group-hover:ring-primary transition-all" />
-                    ) : (
-                      <div className="w-full aspect-square bg-gray-100 rounded-xl flex items-center justify-center">
-                        <div className="text-center">
-                          <span className="text-2xl">📸</span>
-                          <p className="text-xs text-gray-500 mt-1">HEIC</p>
-                        </div>
-                      </div>
-                    )}
-                    {photo.id === currentPhoto?.id && (
-                      <div className="absolute inset-0 bg-primary/20 rounded-xl flex items-center justify-center">
-                        <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414 1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
           {currentPhoto && (
             <section className="border-t pt-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">2. 填寫寵物資料</h2>

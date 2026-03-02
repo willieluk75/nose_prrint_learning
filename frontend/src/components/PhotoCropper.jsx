@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
@@ -48,27 +48,8 @@ export function PhotoCropper({ photo, onCropComplete, onCancel }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const imgRef = useRef(null);
 
-  const initialImageSrc = photo.imageBlob
-    ? URL.createObjectURL(photo.imageBlob)
-    : URL.createObjectURL(photo.file);
-
-  useEffect(() => {
-    if (photo.imageBlob) {
-      // If we have a cropped blob from HEIC conversion, use it directly
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setInitialImageSrc(e.target.result);
-      };
-      reader.readAsDataURL(photo.imageBlob);
-    } else {
-      // Otherwise read the file
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setInitialImageSrc(e.target.result);
-      };
-      reader.readAsDataURL(photo.file);
-    }
-  }, [photo.imageBlob, photo.file]);
+  const initialImageSrc = photo.previewUrl
+    || (photo.imageBlob ? URL.createObjectURL(photo.imageBlob) : URL.createObjectURL(photo.file));
 
   const onImageLoad = (e) => {
     const { width, height } = e.currentTarget;
