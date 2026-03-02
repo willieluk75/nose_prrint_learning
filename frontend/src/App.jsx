@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { PhotoUploader } from './components/PhotoUploader';
 import { PhotoCropper } from './components/PhotoCropper';
 import { PetForm } from './components/PetForm';
@@ -13,8 +13,17 @@ function App() {
   const [currentPhoto, setCurrentPhoto] = useState(null);
   const [petData, setPetData] = useState({});
   const [showProgress, setShowProgress] = useState(false);
+  const [appVersion, setAppVersion] = useState('1.0.0');
 
   const { uploads, uploadPets, clearUploads } = useUpload();
+
+  // Read version from public/version.json
+  useEffect(() => {
+    fetch('/version.json')
+      .then((res) => res.json())
+      .then((data) => setAppVersion(data.version))
+      .catch(() => console.error('Failed to load version'));
+  }, []);
 
   const handlePhotosSelect = useCallback((selectedPhotos) => {
     setPhotos(selectedPhotos);
@@ -105,7 +114,7 @@ function App() {
             寵物鼻紋收集
           </h1>
           <p className="text-gray-600">上傳寵物照片，收集鼻紋用於身份辨識</p>
-          <p className="text-sm text-gray-400 mt-1">v1.0</p>
+          <p className="text-sm text-gray-400 mt-1">v{appVersion}</p>
         </div>
         <div className="bg-white rounded-3xl shadow-xl p-6 space-y-6">
           <section>
@@ -132,7 +141,7 @@ function App() {
                     {photo.id === currentPhoto?.id && (
                       <div className="absolute inset-0 bg-primary/20 rounded-xl flex items-center justify-center">
                         <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414 1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       </div>
                     )}
@@ -150,7 +159,7 @@ function App() {
           {photos.length === 0 && !currentPhoto && uploads.length > 0 && (
             <section className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
               <svg className="w-12 h-12 text-green-500 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414 1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
               <h3 className="text-lg font-semibold text-green-900 mb-2">上傳完成！</h3>
               <p className="text-green-700">寵物資料已成功上傳到資料庫</p>
@@ -158,7 +167,7 @@ function App() {
           )}
         </div>
         <footer className="text-center mt-8 text-sm text-gray-500">
-          <p>寵物鼻紋辨識系統 v1.0</p>
+          <p>寵物鼻紋辨識系統 v{appVersion}</p>
         </footer>
       </div>
       {editingPhoto && <PhotoCropper photo={editingPhoto} onCropComplete={handleCropComplete} onCancel={() => setEditingPhoto(null)} />}
